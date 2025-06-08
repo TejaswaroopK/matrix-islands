@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Matrix Islands Counter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f0f4f8;
+    margin: 0;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    color: #2c3e50;
+  }
+
+  h1 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    color: #1a252f;
+  }
+
+  p {
+    max-width: 600px;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #566270;
+    font-size: 1rem;
+  }
+
+  textarea {
+    width: 100%;
+    max-width: 600px;
+    height: 180px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1rem;
+    padding: 12px;
+    border: 2px solid #ced4da;
+    border-radius: 8px;
+    resize: vertical;
+    box-shadow: inset 1px 1px 4px #e0e6ed;
+    transition: border-color 0.3s ease;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 5px #3498dbaa;
+  }
+
+  .buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  button {
+    background-color: #3498db;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 0;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px #3498db66;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+  }
+
+  button:hover {
+    background-color: #217dbb;
+    box-shadow: 0 6px 14px #217dbbaa;
+  }
+
+  .result {
+    margin-top: 30px;
+    background: white;
+    padding: 20px 25px;
+    max-width: 600px;
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px #0000001a;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #34495e;
+    text-align: center;
+  }
+
+  .error {
+    margin-top: 20px;
+    color: #e74c3c;
+    font-weight: 600;
+    font-size: 1rem;
+    max-width: 600px;
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    textarea {
+      font-size: 0.9rem;
+      height: 140px;
+    }
+
+    button {
+      font-size: 1rem;
+      padding: 12px 0;
+    }
+
+    .result {
+      font-size: 1.1rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>Matrix Islands Counter</h1>
+<p>Enter a matrix of 0s and 1s (rows separated by new lines, values by spaces). Choose whether to include diagonal connections.</p>
+
+<textarea id="matrixInput" placeholder="Example:\n1 0 0 1\n0 1 1 0\n1 0 0 1\n0 0 1 1"></textarea>
+
+<div class="buttons">
+  <button onclick="countIslands(true)">Count Islands (with Diagonals)</button>
+  <button onclick="countIslands(false)">Count Islands (without Diagonals)</button>
+</div>
+
+<div id="error" class="error" style="display:none;"></div>
+<div id="result" class="result" style="display:none;"></div>
+
+<script>
+  function parseMatrix(input) {
+    const rows = input.trim().split('\n');
+    return rows.map(row => row.trim().split(/\s+/).map(Number));
+  }
+
+  function validateMatrix(matrix) {
+    if (matrix.length === 0) return "Matrix cannot be empty.";
+    const length = matrix[0].length;
+    for (const row of matrix) {
+      if (row.length !== length) return "All rows must have the same number of columns.";
+      for (const val of row) {
+        if (val !== 0 && val !== 1) return "Matrix can only contain 0 or 1.";
+      }
+    }
+    return null;
+  }
+
+  function countIslandsInMatrix(matrix, useDiagonals = true) {
+    const rows = matrix.length;
+    const cols = matrix[0].length;
+    const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+
+    const directions = useDiagonals
+      ? [
+          [-1, -1], [-1, 0], [-1, 1],
+          [0, -1],           [0, 1],
+          [1, -1],  [1, 0],  [1, 1]
+        ]
+      : [
+          [-1, 0],
+          [0, -1],        [0, 1],
+          [1, 0]
+        ];
+
+    function dfs(r, c) {
+      visited[r][c] = true;
+      for (const [dr, dc] of directions) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols &&
+            !visited[nr][nc] && matrix[nr][nc] === 1) {
+          dfs(nr, nc);
+        }
+      }
+    }
+
+    let islandCount = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (matrix[r][c] === 1 && !visited[r][c]) {
+          islandCount++;
+          dfs(r, c);
+        }
+      }
+    }
+
+    return islandCount;
+  }
+
+  function countIslands(includeDiagonals) {
+    const input = document.getElementById('matrixInput').value;
+    const errorDiv = document.getElementById('error');
+    const resultDiv = document.getElementById('result');
+    errorDiv.style.display = 'none';
+    resultDiv.style.display = 'none';
+
+    let matrix;
+    try {
+      matrix = parseMatrix(input);
+    } catch {
+      errorDiv.textContent = "Invalid input format. Please check your matrix.";
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    const validationError = validateMatrix(matrix);
+    if (validationError) {
+      errorDiv.textContent = validationError;
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    const count = countIslandsInMatrix(matrix, includeDiagonals);
+    resultDiv.textContent = `Number of islands (${includeDiagonals ? 'with' : 'without'} diagonals): ${count}`;
+    resultDiv.style.display = 'block';
+  }
+
+  // Prefill example
+  document.getElementById('matrixInput').value =
+`1 0 0 1
+0 1 1 0
+1 0 0 1
+0 0 1 1`;
+</script>
+
+</body>
+</html>
